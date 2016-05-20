@@ -47,17 +47,15 @@ var io = require('socket.io').listen(server);
 
 var mysql      = require('mysql');
 var connection = mysql.createConnection({
-  host     : 'localhost',
-  port     : 'port',
-  user     : '< MySQL username >',
-  password : '< MySQL password >',
-  database : '<your database name>'
+	multipleStatements		: true,	
+	host					: 'localhost',
+	port     				: 'port',
+	user     				: '< MySQL username >',
+	password 				: '< MySQL password >',
+	database 				: '<your database name>'
 });
 
-connection.connect();
-
-connection.end();
-
+connection = mysql.createConnection({multipleStatements: true});
 
 /*	==========================================================================
 	GLOBAL ARGUMENTS
@@ -73,14 +71,18 @@ connection.end();
 	STANDALONE FUNCTIONS
 	========================================================================== */
 
-var pushQuery(query){
+var queryResult = function(err, rows, fields){
 
-	connection.query(query, function(err, rows, fields) {
-	  if (!err)
+	if (!err)
 	    console.log('The solution is: ', rows);
-	  else
-	    console.log('Error while performing Query.');
-	});
+	else
+	    console.log('Error while performing Query.');	
+
+};
+
+var pushQuery = function(query){
+
+	connection.query(query, queryResult)
 };
 
 	//> Queries Functions - Get data
@@ -94,36 +96,57 @@ var selectAll = new function(table){
 
 	//> Queries Functions - Push data
 
-// 	
-
 	//> Queries Functions - Create DB
 
 	//> API Functions
 
-var createDB = function(){
+var createDB = function(err,data){
+
+	if(!data && !err){
+
+		fs = require('fs')
+		fs.readFile('createDB.sql', 'utf8', createDB);
+
+	} else {
+
+		pushQuery(data)
+
+	}	
 
 };
 
 var readDB = function(){
 
+
+
 };
 
 var readPatternType = function(type){
+
+
 
 };
 
 var readPattern = function(id){
 
+
+
 };
 
 var writeDB = function(){
+
+
 
 };
 
 var writePatternType = function(patternType){
 
+
+
 };
 
 var writePattern = function(pattern){
+
+
 
 };
