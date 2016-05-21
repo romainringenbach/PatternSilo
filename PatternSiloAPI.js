@@ -1,5 +1,5 @@
 /*	==========================================================================
- 	SERVER CONFIGURATIONS
+ 	SERVER CONFIGURATION
 	========================================================================== */
 
 var http = require('http');
@@ -15,28 +15,46 @@ server.listen(port, function () {
 var io = require('socket.io')(server);
 
 /*	==========================================================================
+ 	MYSQL CONFIGURATION
+	========================================================================== */
+
+var mysql      = require('mysql');
+var connection = mysql.createConnection({
+	multipleStatements		: true,	
+	host					: 'localhost',
+	port     				: 'port',
+	user     				: '< MySQL username >',
+	password 				: '< MySQL password >',
+	database 				: '<your database name>'
+});
+
+connection = mysql.createConnection();
+
+/*	==========================================================================
 	GLOBAL ARGUMENTS
 	========================================================================== */
 
 var dbOjectList = new Array();	
 
 /*	==========================================================================
- 	SERVER FUNCTIONS
+ 	SOCKET FUNCTIONS
 	========================================================================== */
 
 io.on('connection', function (socket) {
+	var login = null;
 
 	/*	
 	 *	Check the login and create the DBObject
 	 */
 
 	socket.on('login', function (data) {
-		if(!checkLogin(login)){
+		if(!checkLogin(data)){
 			socket.emit('message', { message: 'login wrong' });
 			io.emit('user disconnected');
 		} else {
-			var dbObject = new DBObject(login);
-			dbOjectPool.push({login:login,object:dbObject});
+			login = data
+			var dbObject = new DBObject(data);
+			dbOjectPool.push({login:data,object:dbObject});
 
 		}
 	});
@@ -51,3 +69,10 @@ io.on('connection', function (socket) {
 
 });
 
+/*	==========================================================================
+ 	SERVER FUNCTIONS
+	========================================================================== */
+
+var checkLogin(login){
+
+};
