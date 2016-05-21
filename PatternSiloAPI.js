@@ -26,8 +26,6 @@ var configuration = JSON.parse(fs.readFileSync('mysql_conf.json', 'utf8'););
 
 var connection = mysql.createConnection(configuration);
 
-connection = mysql.createConnection();
-
 /*	==========================================================================
 	GLOBAL ARGUMENTS
 	========================================================================== */
