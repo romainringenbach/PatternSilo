@@ -1,0 +1,8 @@
+{
+	"multipleStatements"	: true,	
+	"host"					: "localhost",
+	"port"     				: "port_number",
+	"user"     				: "PatternSilo",
+	"password" 				: "user_password",
+	"database" 				: "DBPatternSilo"
+}	
