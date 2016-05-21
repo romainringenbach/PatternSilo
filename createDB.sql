@@ -84,11 +84,11 @@ CREATE TABLE IF NOT EXISTS `mydb`.`PatternsCharacteristics` (
   `value` VARCHAR(45) NOT NULL,
   `minValue` VARCHAR(45) NOT NULL,
   `maxValue` VARCHAR(45) NOT NULL,
-  `Unit_type` VARCHAR(20) NOT NULL,
+  `unit` VARCHAR(20) NOT NULL,
   PRIMARY KEY (`id`, `type`),
   INDEX `fk_Patterns_has_Characteristics_Characteristics1_idx` (`type` ASC),
   INDEX `fk_Patterns_has_Characteristics_Patterns1_idx` (`id` ASC),
-  INDEX `fk_PatternsCharacteristics_Unit1_idx` (`Unit_type` ASC),
+  INDEX `fk_PatternsCharacteristics_Unit1_idx` (`unit` ASC),
   CONSTRAINT `fk_Patterns_has_Characteristics_Patterns1`
     FOREIGN KEY (`id`)
     REFERENCES `mydb`.`Patterns` (`id`)
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS `mydb`.`PatternsCharacteristics` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_PatternsCharacteristics_Unit1`
-    FOREIGN KEY (`Unit_type`)
+    FOREIGN KEY (`unit`)
     REFERENCES `mydb`.`Unit` (`type`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
