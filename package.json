@@ -1,5 +1,5 @@
 {
-  "name": "PatternSiloAPI",
+  "name": "pattern_silo",
   "version": "0.0.1",
   "description": "The PatternSilo is a API with data base for patterns storage. It provide a simple API for application based on pattern recognition",
   "repository": "https://github.com/nealith/PatternSilo",
@@ -8,8 +8,8 @@
     "mysql": "^2.5.4",
     "socket.io": "^1.0.0"
   },
-  "script": {
-  	"preinstall": "preinstall.sh",
-  	"start": "PatternSiloAPI.js"
+  "scripts": {
+  	"preinstall": "./preinstall.sh",
+  	"start": "./PatternSiloAPI.js"
   }
 }
