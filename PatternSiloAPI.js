@@ -18,15 +18,13 @@ var io = require('socket.io')(server);
  	MYSQL CONFIGURATION
 	========================================================================== */
 
-var mysql      = require('mysql');
-var connection = mysql.createConnection({
-	multipleStatements		: true,	
-	host					: 'localhost',
-	port     				: 'port',
-	user     				: '< MySQL username >',
-	password 				: '< MySQL password >',
-	database 				: '<your database name>'
-});
+var mysql = require('mysql');
+
+var fs = require('fs')
+
+var configuration = JSON.parse(fs.readFileSync('mysql_conf.json', 'utf8'););
+
+var connection = mysql.createConnection(configuration);
 
 connection = mysql.createConnection();
 
