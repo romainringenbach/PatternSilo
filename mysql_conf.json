@@ -1,0 +1,8 @@
+{
+	"multipleStatements"	: true,	
+	"host"					: "localhost",
+	"port"     				: "port",
+	"user"     				: "user",
+	"password" 				: "password",
+	"database" 				: "database"
+}	
