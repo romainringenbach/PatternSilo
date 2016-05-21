@@ -1,8 +1,12 @@
 {
-  "name": "node-mysql",
+  "name": "PatternSiloAPI",
   "version": "0.0.1",
+  "description": "The PatternSilo is a API with data base for patterns storage. It provide a simple API for application based on pattern recognition",
+  "repository": "https://github.com/nealith/PatternSilo",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.10.6",
-    "mysql": "^2.5.4"
+    "mysql": "^2.5.4",
+    "socket.io": "^1.0.0"
   }
 }
