@@ -31,21 +31,21 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `mydb`.`Patterns` ;
 
 CREATE TABLE IF NOT EXISTS `mydb`.`Patterns` (
-  `idPattern` INT NOT NULL AUTO_INCREMENT,
-  `pType` VARCHAR(20) NOT NULL,
-  `idParent` INT NULL,
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `type` VARCHAR(20) NOT NULL,
+  `parent` INT NULL,
   `weigth` INT NOT NULL,
-  PRIMARY KEY (`idPattern`, `pType`),
-  INDEX `fk_Patterns_PatternTypes_idx` (`pType` ASC),
-  INDEX `fk_Patterns_Patterns1_idx` (`idParent` ASC),
+  PRIMARY KEY (`id`, `type`),
+  INDEX `fk_Patterns_PatternTypes_idx` (`type` ASC),
+  INDEX `fk_Patterns_Patterns1_idx` (`parent` ASC),
   CONSTRAINT `fk_Patterns_PatternTypes`
-    FOREIGN KEY (`pType`)
+    FOREIGN KEY (`type`)
     REFERENCES `mydb`.`PatternTypes` (`type`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_Patterns_Patterns1`
-    FOREIGN KEY (`idParent`)
-    REFERENCES `mydb`.`Patterns` (`idPattern`)
+    FOREIGN KEY (`parent`)
+    REFERENCES `mydb`.`Patterns` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -63,27 +63,45 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
+-- Table `mydb`.`Unit`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `mydb`.`Unit` ;
+
+CREATE TABLE IF NOT EXISTS `mydb`.`Unit` (
+  `type` VARCHAR(20) NOT NULL,
+  PRIMARY KEY (`type`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
 -- Table `mydb`.`PatternsCharacteristics`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `mydb`.`PatternsCharacteristics` ;
 
 CREATE TABLE IF NOT EXISTS `mydb`.`PatternsCharacteristics` (
-  `idP` INT NOT NULL,
+  `id` INT NOT NULL,
   `type` VARCHAR(20) NOT NULL,
-  `value` VARCHAR(45) NULL,
-  `minValue` VARCHAR(45) NULL,
-  `maxValue` VARCHAR(45) NULL,
-  PRIMARY KEY (`idP`, `type`),
+  `value` VARCHAR(45) NOT NULL,
+  `minValue` VARCHAR(45) NOT NULL,
+  `maxValue` VARCHAR(45) NOT NULL,
+  `Unit_type` VARCHAR(20) NOT NULL,
+  PRIMARY KEY (`id`, `type`),
   INDEX `fk_Patterns_has_Characteristics_Characteristics1_idx` (`type` ASC),
-  INDEX `fk_Patterns_has_Characteristics_Patterns1_idx` (`idP` ASC),
+  INDEX `fk_Patterns_has_Characteristics_Patterns1_idx` (`id` ASC),
+  INDEX `fk_PatternsCharacteristics_Unit1_idx` (`Unit_type` ASC),
   CONSTRAINT `fk_Patterns_has_Characteristics_Patterns1`
-    FOREIGN KEY (`idP`)
-    REFERENCES `mydb`.`Patterns` (`idPattern`)
+    FOREIGN KEY (`id`)
+    REFERENCES `mydb`.`Patterns` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_Patterns_has_Characteristics_Characteristics1`
     FOREIGN KEY (`type`)
     REFERENCES `mydb`.`Characteristics` (`type`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_PatternsCharacteristics_Unit1`
+    FOREIGN KEY (`Unit_type`)
+    REFERENCES `mydb`.`Unit` (`type`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
