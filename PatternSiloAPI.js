@@ -1,152 +1,53 @@
-/* SAMPLE
-
-var mysql      = require('mysql');
-var connection = mysql.createConnection({
-  host     : 'localhost',
-  user     : '< MySQL username >',
-  password : '< MySQL password >',
-  database : '<your database name>'
-});
-
-connection.connect();
-
-connection.query('SELECT * from < table name >', function(err, rows, fields) {
-  if (!err)
-    console.log('The solution is: ', rows);
-  else
-    console.log('Error while performing Query.');
-});
-
-connection.end();
-
-*/
-
 /*	==========================================================================
- 	BASIC SERVER CONFIGURATIONS
+ 	SERVER CONFIGURATIONS
 	========================================================================== */
 
 var http = require('http');
-var server = require('http').createServer(function(req, res){
+var server = http.createServer(function(req, res){
 	console.log('Printed page');
 });
 
-var port = process.env.PORT || 1337;
+var port = process.env.PORT || 5110;
 server.listen(port, function () {
 	console.log('Server listening at port %d', port);
 });
 
-var io = require('socket.io').listen(server);
-
-/* ==== Loading custom modules === */
-
-//var prevision = require('./dataPrevision.js');
-
-/*	==========================================================================
- 	BASIC MYSQL CONFIGURATIONS
-	========================================================================== */
-
-var mysql      = require('mysql');
-var connection = mysql.createConnection({
-	multipleStatements		: true,	
-	host					: 'localhost',
-	port     				: 'port',
-	user     				: '< MySQL username >',
-	password 				: '< MySQL password >',
-	database 				: '<your database name>'
-});
-
-connection = mysql.createConnection({multipleStatements: true});
+var io = require('socket.io')(server);
 
 /*	==========================================================================
 	GLOBAL ARGUMENTS
 	========================================================================== */
 
-
-
-/*	==========================================================================
-	OBJECTS
-	========================================================================== */
+var dbOjectList = new Array();	
 
 /*	==========================================================================
-	STANDALONE FUNCTIONS
+ 	SERVER FUNCTIONS
 	========================================================================== */
 
-var queryResult = function(err, rows, fields){
+io.on('connection', function (socket) {
 
-	if (!err)
-	    console.log('The solution is: ', rows);
-	else
-	    console.log('Error while performing Query.');	
+	/*	
+	 *	Check the login and create the DBObject
+	 */
 
-};
+	socket.on('login', function (data) {
+		if(!checkLogin(login)){
+			socket.emit('message', { message: 'login wrong' });
+			io.emit('user disconnected');
+		} else {
+			var dbObject = new DBObject(login);
+			dbOjectPool.push({login:login,object:dbObject});
 
-var pushQuery = function(query){
+		}
+	});
 
-	connection.query(query, queryResult)
-};
+	/*
+	 *	Disconnect
+	 */
 
-	//> Queries Functions - Get data
+	socket.on('disconnect', function () {
+		io.emit('user disconnected');
+	});
 
-var selectAll = new function(table){
+});
 
-	query = 'SELECT * FROM '+table;
-	pushQuery(query);
-
-};
-
-	//> Queries Functions - Push data
-
-	//> Queries Functions - Create DB
-
-	//> API Functions
-
-var createDB = function(err,data){
-
-	if(!data && !err){
-
-		fs = require('fs')
-		fs.readFile('createDB.sql', 'utf8', createDB);
-
-	} else {
-
-		pushQuery(data)
-
-	}	
-
-};
-
-var readDB = function(){
-
-
-
-};
-
-var readPatternType = function(type){
-
-
-
-};
-
-var readPattern = function(id){
-
-
-
-};
-
-var writeDB = function(){
-
-
-
-};
-
-var writePatternType = function(patternType){
-
-
-
-};
-
-var writePattern = function(pattern){
-
-
-
-};
