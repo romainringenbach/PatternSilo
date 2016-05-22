@@ -44,11 +44,12 @@ io.on('connection', function (socket) {
 	 */
 
 	socket.on('login', function (data) {
-		if(!checkLogin(data)){
-			socket.emit('message', { message: 'login wrong' });
+		ret = checkLogin(data);
+		if(ret.type == 'err'){
+			socket.emit('message', ret);
 			io.emit('user disconnected');
 		} else {
-			login = data;
+			login = data.user;
 			var dbObject = new DBObject(data);
 			dbOjectPool.push({login:data,object:dbObject});
 			socket.emit('message', { message: 'login ok' });
@@ -71,6 +72,7 @@ io.on('connection', function (socket) {
 			ret = createUser(data);
 		} else {
 			ret = {message:"You're not logged",type:"err"};
+			io.emit('user disconnected');
 		}
 		socket.emit('message', ret);
 	});
@@ -81,6 +83,7 @@ io.on('connection', function (socket) {
 			ret = deleteUser(data);
 		} else {
 			ret = {message:"You're not logged",type:"err"};
+			io.emit('user disconnected');
 		}
 		socket.emit('message', ret);
 	});		
@@ -100,6 +103,34 @@ io.on('connection', function (socket) {
 	========================================================================== */
 
 var checkLogin(login){
+	var ret = {
+		message: null,
+		type: null,
+	};
+	var password = getSha1sum(login.password);
+	var queryStructure = 'SELECT FROM SiloAdmin.Users WHERE login = ?? AND password = ??;';
+	var queryValues = [login.user,password];
+	var query = mysql.format(queryStructure,queryValues);		
+
+	connection.query(query, function(err, rows, fields){
+
+		if (!err) {
+			if (typeof rows[0].login != undefined && rows[0].login != null ){
+				ret.message = 'Log with user : '+login.user;
+				ret.type = 'result';
+			} else {
+				ret.message = 'User or password wrong';
+				ret.type = 'err';				
+			}	
+		}
+		else {
+			ret.message = 'Error while performing Query : SELECT FROM SiloAdmin.Users WHERE login = ?? AND password = ??';
+			ret.type = 'err';	
+		}
+
+	});
+	console.log(ret);
+	return ret;
 
 };
 
@@ -134,7 +165,7 @@ var createUser = function(login){
 		}
 
 	});
-
+	console.log(ret);
 	return ret;
 
 };
@@ -163,7 +194,7 @@ var deleteUser = function(user){
 		}
 
 	});
-
+	console.log(ret);
 	return ret;
 
 };
