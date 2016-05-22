@@ -22,7 +22,7 @@ var mysql = require('mysql');
 
 var fs = require('fs')
 
-var configuration = JSON.parse(fs.readFileSync('mysql_conf.json', 'utf8'););
+var configuration = JSON.parse(fs.readFileSync('mysql_conf.json', 'utf8'));
 
 var connection = mysql.createConnection(configuration);
 
@@ -194,7 +194,7 @@ var createUser = function(login,socket){
 		if (!err) {
 			createUserSchema(login,socket);
 		} else {
-			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
+			ret.message = 'Can not create the user '+login.user;
 			ret.type = 'err';
 		    console.log(ret);	
 		    emitMessage(ret,socket);
@@ -225,7 +225,7 @@ var createUserGetId = function(login,socket){
 		if (!err) {
 			createUserCreateSchema(id,socket);
 		} else {
-			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
+			ret.message = 'Can not get id of '+login.user;
 			ret.type = 'err';
 		    console.log(ret);
 		    emitMessage(ret,socket);	
@@ -244,17 +244,17 @@ var createUserCreateSchema = function(id,socket){
 		message: null,
 		type: null,
 	};
-
+	var schema = 'PatternSilo'+id;
 	queryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
-	queryValues = [id];
+	queryValues = [schema];
 	query = mysql.format(queryStructure,queryValues);		
 
 	connection.query(query, function(err, rows, fields){
 
 		if (!err) {
-			createUserCreateTables(id,socket);
+			createUserCreateTables(schema,socket);
 		} else {
-			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
+			ret.message = 'Can not create schema';
 			ret.type = 'err';
 		    console.log(ret);
 		    emitMessage(ret,socket);	
@@ -268,15 +268,16 @@ var createUserCreateSchema = function(id,socket){
  *
  */
 
-var createUserCreateTables = function(id,socket){
+var createUserCreateTables = function(schema,socket){
 	var ret = {
 		message: null,
 		type: null,
 	};
 
-	queryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
-	queryValues = [id];
-	query = mysql.format(queryStructure,queryValues);		
+	fs = require('fs');
+	query = fs.readFileSync('createDB.sql', 'utf8');
+
+	query = query.replace('mydb',schema);		
 
 	connection.query(query, function(err, rows, fields){
 
@@ -286,11 +287,11 @@ var createUserCreateTables = function(id,socket){
 		    console.log(ret);
 		}
 		else {
-			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
-			ret.type = 'err';
-		    console.log(ret);
-		    emitMessage(ret,socket);	
+			ret.message = 'Can not create tables';
+			ret.type = 'err';	
 		}
+		console.log(ret);
+		emitMessage(ret,socket);
 
 	});
 };
