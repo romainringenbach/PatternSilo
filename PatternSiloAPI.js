@@ -45,7 +45,7 @@ io.on('connection', function (socket) {
 	 */
 
 	socket.on('login', function (data) {
-		ret = checkLogin(data);
+		ret = checkLogin(data,socket);
 		if(ret.type == 'err'){
 			socket.emit('message', ret);
 			io.emit('user disconnected');
@@ -66,7 +66,7 @@ io.on('connection', function (socket) {
 	socket.on('query', function (data) {
 		var ret = null;
 		if (login != null){
-			resultQuery = dbObject.run(data);
+			resultQuery = dbObject.run(data,socket);
 			ret = resultQuery.ret;
 			result = resultQuery.result;
 			socket.emit('message', ret);
@@ -97,7 +97,7 @@ io.on('connection', function (socket) {
 	socket.on('create_user', function (data) {
 		var ret = null;
 		if (login == configuration.user){
-			ret = createUser(data);
+			ret = createUser(data,socket);
 			socket.emit('message', ret);
 		} else {
 			ret = {message:"You're not logged",type:"err"};
@@ -109,7 +109,7 @@ io.on('connection', function (socket) {
 	socket.on('delete_user', function (data) {
 		var ret = null;
 		if (login == configuration.user){
-			ret = deleteUser(data);
+			ret = deleteUser(data,socket);
 			socket.emit('message', ret);
 		} else {
 			ret = {message:"You're not logged",type:"err"};
@@ -132,7 +132,7 @@ io.on('connection', function (socket) {
  	SERVER FUNCTIONS
 	========================================================================== */
 
-var checkLogin(login){
+var checkLogin = function(login,socket){
 	var ret = {
 		message: null,
 		type: null,
@@ -157,10 +157,14 @@ var checkLogin(login){
 			ret.message = 'Error while performing Query : SELECT FROM SiloAdmin.Users WHERE login = ?? AND password = ??';
 			ret.type = 'err';	
 		}
+		emitMessage(ret,socket);
 
 	});
-	console.log(ret);
-	return ret;
+};
+
+var emitMessage = function(object,socket){
+
+	socket.emit('message',object);
 
 };
 
@@ -168,9 +172,13 @@ var checkLogin(login){
  	ADMIN FUNCTIONS
 	========================================================================== */
 
+/*
+ *	Create user
+ * 	Initiation function, insert the login in the user table
+ */
 
+var createUser = function(login,socket){
 
-var createUser = function(login){
 	var ret = {
 		message: null,
 		type: null,
@@ -184,6 +192,95 @@ var createUser = function(login){
 	connection.query(query, function(err, rows, fields){
 
 		if (!err) {
+			createUserSchema(login,socket);
+		} else {
+			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
+			ret.type = 'err';
+		    console.log(ret);	
+		    emitMessage(ret,socket);
+		}
+
+	});
+};
+
+/*
+ *	Get the if of the new user
+ *
+ */
+
+var createUserGetId = function(login,socket){
+	var ret = {
+		message: null,
+		type: null,
+	};
+
+	var id =null;
+
+	queryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ??;';
+	queryValues = [login.user];
+	query = mysql.format(queryStructure,queryValues);		
+
+	connection.query(query, function(err, rows, fields){
+
+		if (!err) {
+			createUserCreateSchema(id,socket);
+		} else {
+			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
+			ret.type = 'err';
+		    console.log(ret);
+		    emitMessage(ret,socket);	
+		}
+
+	});
+};
+
+/*
+ *	Create the schema with id
+ *
+ */
+
+var createUserCreateSchema = function(id,socket){
+	var ret = {
+		message: null,
+		type: null,
+	};
+
+	queryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
+	queryValues = [id];
+	query = mysql.format(queryStructure,queryValues);		
+
+	connection.query(query, function(err, rows, fields){
+
+		if (!err) {
+			createUserCreateTables(id,socket);
+		} else {
+			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
+			ret.type = 'err';
+		    console.log(ret);
+		    emitMessage(ret,socket);	
+		}
+
+	});
+};
+
+/*
+ *	Create the table under the schema
+ *
+ */
+
+var createUserCreateTables = function(id,socket){
+	var ret = {
+		message: null,
+		type: null,
+	};
+
+	queryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
+	queryValues = [id];
+	query = mysql.format(queryStructure,queryValues);		
+
+	connection.query(query, function(err, rows, fields){
+
+		if (!err) {
 			ret.message = 'Create user : '+login.user;
 			ret.type = 'result';
 		    console.log(ret);
@@ -191,16 +288,14 @@ var createUser = function(login){
 		else {
 			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
 			ret.type = 'err';
-		    console.log(ret);	
+		    console.log(ret);
+		    emitMessage(ret,socket);	
 		}
 
 	});
-	console.log(ret);
-	return ret;
-
 };
 
-var deleteUser = function(user){
+var deleteUser = function(user,socket){
 	var ret = {
 		message: null,
 		type: null,
@@ -215,17 +310,14 @@ var deleteUser = function(user){
 		if (!err) {
 			ret.message = 'Delete user : '+user;
 			ret.type = 'result';
-		    console.log(ret);
 		}
 		else {
 			ret.message = 'Error while performing Query : DELETE FROM SiloAdmin.Users';
 			ret.type = 'err';
-		    console.log(ret);	
 		}
-
+		console.log(ret);
+		emitMessage(ret,socket);
 	});
-	console.log(ret);
-	return ret;
 
 };
 
