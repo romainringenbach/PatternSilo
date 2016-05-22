@@ -72,3 +72,68 @@ io.on('connection', function (socket) {
 var checkLogin(login){
 
 };
+
+/*	==========================================================================
+ 	ADMIN FUNCTIONS
+	========================================================================== */
+
+
+
+var createUser = function(login){
+
+	var password = getSha1sum(login.password);
+
+	var queryStructure = 'INSERT INTO SiloAdmin.Users (login,password,id) VALUES (??,??,null);';
+	var queryValues = [login.user,password];
+	var query = mysql.format(queryStructure,queryValues);	
+
+	connection.query(query, function(err, rows, fields){
+
+		if (!err) {
+		    console.log('Create user : '+login.user);
+		}
+		else {
+		    console.log('Error while performing Query : INSERT INTO SiloAdmin.Users');	
+		}
+
+	});
+
+};
+
+var deleteUser = function(user){
+
+	var queryStructure = 'DELETE FROM SiloAdmin.Users WHERE login = ??;';
+	var queryValues = [user];
+	var query = mysql.format(queryStructure,queryValues);	
+
+	connection.query(query, function(err, rows, fields){
+
+		if (!err) {
+		    console.log('Delete user : '+user);
+		}
+		else {
+		    console.log('Error while performing Query : DELETE FROM SiloAdmin.Users');	
+		}
+
+	});
+
+};
+
+var getSha1sum = function(string){
+
+	var crypto = require('crypto');
+	var shasum = crypto.createHash('sha1');
+	return shasum.update(string).digest('hex');
+
+};
+
+/*var queryResult = function(err, rows, fields){
+
+	if (!err) {
+	    console.log('The solution is: ', rows);
+	}
+	else {
+	    console.log('Error while performing Query.');	
+	}
+
+};*/
