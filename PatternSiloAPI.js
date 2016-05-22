@@ -48,12 +48,42 @@ io.on('connection', function (socket) {
 			socket.emit('message', { message: 'login wrong' });
 			io.emit('user disconnected');
 		} else {
-			login = data
+			login = data;
 			var dbObject = new DBObject(data);
 			dbOjectPool.push({login:data,object:dbObject});
-
+			socket.emit('message', { message: 'login ok' });
 		}
 	});
+
+	socket.on('admin', function (data) {
+		if(data != configuration.password){
+			socket.emit('message', { message: 'login wrong' });
+			io.emit('user disconnected');
+		} else {
+			login = configuration.user;
+			socket.emit('message', { message: 'login ok' });
+		}
+	});	
+
+	socket.on('create_user', function (data) {
+		var ret = null;
+		if (login == configuration.user){
+			ret = createUser(data);
+		} else {
+			ret = {message:"You're not logged",type:"err"};
+		}
+		socket.emit('message', ret);
+	});
+
+	socket.on('delete_user', function (data) {
+		var ret = null;
+		if (login == configuration.user){
+			ret = deleteUser(data);
+		} else {
+			ret = {message:"You're not logged",type:"err"};
+		}
+		socket.emit('message', ret);
+	});		
 
 	/*
 	 *	Disconnect
@@ -80,7 +110,10 @@ var checkLogin(login){
 
 
 var createUser = function(login){
-
+	var ret = {
+		message: null,
+		type: null,
+	};
 	var password = getSha1sum(login.password);
 
 	var queryStructure = 'INSERT INTO SiloAdmin.Users (login,password,id) VALUES (??,??,null);';
@@ -90,17 +123,27 @@ var createUser = function(login){
 	connection.query(query, function(err, rows, fields){
 
 		if (!err) {
-		    console.log('Create user : '+login.user);
+			ret.message = 'Create user : '+login.user;
+			ret.type = 'result';
+		    console.log(ret);
 		}
 		else {
-		    console.log('Error while performing Query : INSERT INTO SiloAdmin.Users');	
+			ret.message = 'Error while performing Query : INSERT INTO SiloAdmin.Users';
+			ret.type = 'err';
+		    console.log(ret);	
 		}
 
 	});
 
+	return ret;
+
 };
 
 var deleteUser = function(user){
+	var ret = {
+		message: null,
+		type: null,
+	};
 
 	var queryStructure = 'DELETE FROM SiloAdmin.Users WHERE login = ??;';
 	var queryValues = [user];
@@ -109,13 +152,19 @@ var deleteUser = function(user){
 	connection.query(query, function(err, rows, fields){
 
 		if (!err) {
-		    console.log('Delete user : '+user);
+			ret.message = 'Delete user : '+user;
+			ret.type = 'result';
+		    console.log(ret);
 		}
 		else {
-		    console.log('Error while performing Query : DELETE FROM SiloAdmin.Users');	
+			ret.message = 'Error while performing Query : DELETE FROM SiloAdmin.Users';
+			ret.type = 'err';
+		    console.log(ret);	
 		}
 
 	});
+
+	return ret;
 
 };
 
