@@ -4,7 +4,7 @@ CREATE USER 'PatternSilo'@'localhost' IDENTIFIED BY 'password';
 GRANT CREATE, UPDATE, INSERT, INDEX, DROP, SELECT, DELETE ON db_password.* TO 'PatternSilo'@'localhost';
 FLUSH PRIVILEGES;
 
-USE `PatternSilo` ;
+USE `DBPatternSilo` ;
 
 -- MySQL Workbench Forward Engineering
 
@@ -27,10 +27,6 @@ CREATE TABLE IF NOT EXISTS `SiloAdmin`.`Users` (
   `login` VARCHAR(255) NOT NULL,
   `password` VARCHAR(255) NOT NULL,
   `id` INT NOT NULL AUTO_INCREMENT,
-  PRIMARY KEY (`id`))
+  PRIMARY KEY (`login`),
+  UNIQUE INDEX `id_UNIQUE` (`id` ASC))
 ENGINE = InnoDB;
-
-
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
