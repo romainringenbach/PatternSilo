@@ -30,14 +30,15 @@ var connection = mysql.createConnection(configuration);
 	GLOBAL ARGUMENTS
 	========================================================================== */
 
-var dbOjectList = new Array();	
-
 /*	==========================================================================
  	SOCKET FUNCTIONS
 	========================================================================== */
 
 io.on('connection', function (socket) {
 	var login = null;
+	var dbObject = null;
+
+	/* User connection */
 
 	/*	
 	 *	Check the login and create the DBObject
@@ -50,11 +51,38 @@ io.on('connection', function (socket) {
 			io.emit('user disconnected');
 		} else {
 			login = data.user;
-			var dbObject = new DBObject(data);
-			dbOjectPool.push({login:data,object:dbObject});
-			socket.emit('message', { message: 'login ok' });
+			dbObject = new DBObject(data);
+			socket.emit('message', ret);
 		}
 	});
+
+	/*	data = {
+	 *		query : "query"; 
+	 *		values : {};
+	 *	}
+	 *	see specification in documentation
+	 */
+
+	socket.on('query', function (data) {
+		var ret = null;
+		if (login != null){
+			resultQuery = dbObject.run(data);
+			ret = resultQuery.ret;
+			result = resultQuery.result;
+			socket.emit('message', ret);
+			socket.emit('data', result);
+		} else {
+			ret = {message:"You're not logged",type:"err"};
+			socket.emit('message', ret);
+			io.emit('user disconnected');			
+		}
+	});	
+
+	/* Admin connection */
+
+	/*	
+	 *	Check the password for admin connection
+	 */
 
 	socket.on('admin', function (data) {
 		if(data != configuration.password){
@@ -70,22 +98,24 @@ io.on('connection', function (socket) {
 		var ret = null;
 		if (login == configuration.user){
 			ret = createUser(data);
+			socket.emit('message', ret);
 		} else {
 			ret = {message:"You're not logged",type:"err"};
+			socket.emit('message', ret);
 			io.emit('user disconnected');
 		}
-		socket.emit('message', ret);
 	});
 
 	socket.on('delete_user', function (data) {
 		var ret = null;
 		if (login == configuration.user){
 			ret = deleteUser(data);
+			socket.emit('message', ret);
 		} else {
 			ret = {message:"You're not logged",type:"err"};
+			socket.emit('message', ret);
 			io.emit('user disconnected');
 		}
-		socket.emit('message', ret);
 	});		
 
 	/*
@@ -206,14 +236,3 @@ var getSha1sum = function(string){
 	return shasum.update(string).digest('hex');
 
 };
-
-/*var queryResult = function(err, rows, fields){
-
-	if (!err) {
-	    console.log('The solution is: ', rows);
-	}
-	else {
-	    console.log('Error while performing Query.');	
-	}
-
-};*/
