@@ -162,9 +162,9 @@ var checkLogin = function(login,socket){
 	});
 };
 
-var emitMessage = function(object,socket){
+var emitMessage = function(message,type,socket){
 
-	socket.emit('message',object);
+	socket.emit('message',{message:message,type:type});
 
 };
 
@@ -172,129 +172,117 @@ var emitMessage = function(object,socket){
  	ADMIN FUNCTIONS
 	========================================================================== */
 
-/*
- *	Create user
- * 	Initiation function, insert the login in the user table
- */
 
 var createUser = function(login,socket){
 
-	var ret = {
-		message: null,
-		type: null,
-	};
-	var password = getSha1sum(login.password);
+	try {
 
-	var queryStructure = 'INSERT INTO SiloAdmin.Users (login,password,id) VALUES (??,??,null);';
-	var queryValues = [login.user,password];
-	var query = mysql.format(queryStructure,queryValues);	
+		// Create a transaction
 
-	connection.query(query, function(err, rows, fields){
+		connection.beginTransaction(function(err){
 
-		if (!err) {
-			createUserSchema(login,socket);
-		} else {
-			ret.message = 'Can not create the user '+login.user;
-			ret.type = 'err';
-		    console.log(ret);	
-		    emitMessage(ret,socket);
-		}
+			if (err) {
+			    console.log('Error 101');
+			    throw err;	
+			}
 
-	});
+			// Prepare user creation statement
+
+			var password = getSha1sum(login.password);
+			var createUserQueryStructure = 'INSERT INTO SiloAdmin.Users (login,password,id) VALUES (??,??,null);';
+			var createUserQueryValues = [login.user,password];
+			var createUserQuery = mysql.format(queryStructure,queryValues);		
+
+			// Create user query
+
+			connection.query(createUserQuery, function(err, rows, fields){
+
+				if (err) {
+					console.log('Error 102');
+					return connection.rollback(function() {
+	         			throw err;
+	        		});
+				}
+
+				// Prepare id recovery statement
+
+				var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ??;';
+				var getIdQueryValues = [login.user];
+				var getIdQuery = mysql.format(queryStructure,queryValues);				
+
+				// Recovery user id
+
+				connection.query(getIdQuery, function(err, rows, fields){
+
+					if (err) {
+						console.log('Error 103');
+						return connection.rollback(function() {
+							throw err;
+						});					
+					} 
+
+					// Prepare schema creation statement
+
+					var id = rows[0].id;
+					var schema = 'PatternSilo'+id;
+
+					var createSchemaQueryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
+					var createSchemaQueryValues = [schema];
+					var createSchemaQuery = mysql.format(queryStructure,queryValues);
+
+					// Create schema
+
+					connection.query(createSchemaQuery, function(err, rows, fields){
+
+						if (err) {
+							console.log('Error 104');
+							return connection.rollback(function() {
+								throw err;
+							});	
+						}
+
+						// Prepare tables creation statement
+
+						fs = require('fs');
+						var createTablesQuery = fs.readFileSync('createDB.sql', 'utf8');
+
+						var createTablesQuery = query.replace('mydb',schema);					
+
+						// Create tables
+
+						connection.query(createTablesQuery, function(err, rows, fields){
+
+							if (err) {
+								console.log('Error 105');
+								return connection.rollback(function() {
+									throw err;
+								});	
+							} 
+
+							console.log('106')
+							emitMessage(100,'message',socket);
+
+						});
+
+					});
+
+				});
+
+			});			
+
+		});
+
+	} catch (ex) {
+		console.log(ex);
+		emitMessage(101,'err',socket);
+	}	
+
 };
 
 /*
- *	Get the if of the new user
+ *	Don't use for the moment, not secure function
  *
  */
-
-var createUserGetId = function(login,socket){
-	var ret = {
-		message: null,
-		type: null,
-	};
-
-	var id =null;
-
-	queryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ??;';
-	queryValues = [login.user];
-	query = mysql.format(queryStructure,queryValues);		
-
-	connection.query(query, function(err, rows, fields){
-
-		if (!err) {
-			createUserCreateSchema(id,socket);
-		} else {
-			ret.message = 'Can not get id of '+login.user;
-			ret.type = 'err';
-		    console.log(ret);
-		    emitMessage(ret,socket);	
-		}
-
-	});
-};
-
-/*
- *	Create the schema with id
- *
- */
-
-var createUserCreateSchema = function(id,socket){
-	var ret = {
-		message: null,
-		type: null,
-	};
-	var schema = 'PatternSilo'+id;
-	queryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
-	queryValues = [schema];
-	query = mysql.format(queryStructure,queryValues);		
-
-	connection.query(query, function(err, rows, fields){
-
-		if (!err) {
-			createUserCreateTables(schema,socket);
-		} else {
-			ret.message = 'Can not create schema';
-			ret.type = 'err';
-		    console.log(ret);
-		    emitMessage(ret,socket);	
-		}
-
-	});
-};
-
-/*
- *	Create the table under the schema
- *
- */
-
-var createUserCreateTables = function(schema,socket){
-	var ret = {
-		message: null,
-		type: null,
-	};
-
-	fs = require('fs');
-	query = fs.readFileSync('createDB.sql', 'utf8');
-
-	query = query.replace('mydb',schema);		
-
-	connection.query(query, function(err, rows, fields){
-
-		if (!err) {
-			ret.message = 'Create user : '+login.user;
-			ret.type = 'result';
-		    console.log(ret);
-		}
-		else {
-			ret.message = 'Can not create tables';
-			ret.type = 'err';	
-		}
-		console.log(ret);
-		emitMessage(ret,socket);
-
-	});
-};
 
 var deleteUser = function(user,socket){
 	var ret = {
