@@ -66,14 +66,9 @@ io.on('connection', function (socket) {
 	socket.on('query', function (data) {
 		var ret = null;
 		if (login != null){
-			resultQuery = dbObject.run(data,socket);
-			ret = resultQuery.ret;
-			result = resultQuery.result;
-			socket.emit('message', ret);
-			socket.emit('data', result);
+			dbObject.run(data,socket);
 		} else {
-			ret = {message:"You're not logged",type:"err"};
-			socket.emit('message', ret);
+			emitMessage("You're not logged","err",socket);
 			io.emit('user disconnected');			
 		}
 	});	
@@ -86,22 +81,20 @@ io.on('connection', function (socket) {
 
 	socket.on('admin', function (data) {
 		if(data != configuration.password){
-			socket.emit('message', { message: 'login wrong' });
+			emitMessage('login wrong','err',socket);
 			io.emit('user disconnected');
 		} else {
 			login = configuration.user;
-			socket.emit('message', { message: 'login ok' });
+			emitMessage('login ok','message',socket);
 		}
 	});	
 
 	socket.on('create_user', function (data) {
 		var ret = null;
 		if (login == configuration.user){
-			ret = createUser(data,socket);
-			socket.emit('message', ret);
+			createUser(data,socket);
 		} else {
-			ret = {message:"You're not logged",type:"err"};
-			socket.emit('message', ret);
+			emitMessage("You're not logged","err",socket);
 			io.emit('user disconnected');
 		}
 	});
@@ -109,11 +102,9 @@ io.on('connection', function (socket) {
 	socket.on('delete_user', function (data) {
 		var ret = null;
 		if (login == configuration.user){
-			ret = deleteUser(data,socket);
-			socket.emit('message', ret);
+			deleteUser(data,socket);
 		} else {
-			ret = {message:"You're not logged",type:"err"};
-			socket.emit('message', ret);
+			emitMessage("You're not logged","err",socket);
 			io.emit('user disconnected');
 		}
 	});		
