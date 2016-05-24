@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="FR-fr">
+ <head>
+
+	<meta charset="UTF-8">
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<title>PatternSiloAdmin</title>
+	<meta name="viewport" content="width=device-width"/>
+ </head>
+
+ <body>
+		
+ </body>
+<script src="socket.io.js"></script>
+<script>
+  var socket = io.connect('http://localhost:5110');
+  
+  socket.on('message',function (data) {
+    console.log(data);
+  });
+
+  var connectAdmin = function(password){
+  	socket.emit('admin',password);
+  };
+
+  var connectUser = function(user,password){
+  	socket.emit('login',{user:user,password:password});
+  };
+
+  var query = function(data){
+  	socket.emit('query',data);
+  };
+
+  var ping = function(message){
+  	socket.emit('ping',message);
+  };
+
+
+
+</script>
+
+</html>
