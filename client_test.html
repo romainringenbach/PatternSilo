@@ -35,7 +35,21 @@
   	socket.emit('ping',message);
   };
 
+  var createUser = function(user,password){
+  	socket.emit('create_user',{user:user,password:password});
+  };
 
+  var deleteUser = function(user){
+  	socket.emit('delete_user',user);
+  };  
+
+  var disconnect = function(){
+  	socket.emit('disconnect');
+  };
+
+  var logout = function(){
+  	socket.emit('logout');
+  };
 
 </script>
 
