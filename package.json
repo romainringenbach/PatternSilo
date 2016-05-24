@@ -10,6 +10,6 @@
   },
   "scripts": {
   	"preinstall": "./preinstall.sh",
-  	"start": "./PatternSiloAPI.js"
+  	"start": "node ./PatternSiloAPI.js"
   }
 }

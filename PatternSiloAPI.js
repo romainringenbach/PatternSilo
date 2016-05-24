@@ -12,7 +12,7 @@ server.listen(port, function () {
 	console.log('Server listening at port %d', port);
 });
 
-var io = require('socket.io')(server);
+var io = require('socket.io').listen(server);
 
 /*	==========================================================================
  	MYSQL CONFIGURATION
@@ -31,103 +31,10 @@ var connection = mysql.createConnection(configuration);
 	========================================================================== */
 
 /*	==========================================================================
- 	SOCKET FUNCTIONS
-	========================================================================== */
-
-io.on('connection', function (socket) {
-	var login = null;
-	var dbObject = null;
-
-	/* User connection */
-
-	/*	
-	 *	Check the login and create the DBObject
-	 */
-
-	socket.on('login', function (data) {
-		ret = checkLogin(data,socket);
-		if(ret.type == 'err'){
-			socket.emit('message', ret);
-			io.emit('user disconnected');
-		} else {
-			login = data.user;
-			dbObject = new DBObject(data);
-			socket.emit('message', ret);
-		}
-	});
-
-	/*	data = {
-	 *		query : "query"; 
-	 *		values : {};
-	 *	}
-	 *	see specification in documentation
-	 */
-
-	socket.on('query', function (data) {
-		var ret = null;
-		if (login != null){
-			dbObject.run(data,socket);
-		} else {
-			emitMessage("You're not logged","err",socket);
-			io.emit('user disconnected');			
-		}
-	});	
-
-	/* Admin connection */
-
-	/*	
-	 *	Check the password for admin connection
-	 */
-
-	socket.on('admin', function (data) {
-		if(data != configuration.password){
-			emitMessage('login wrong','err',socket);
-			io.emit('user disconnected');
-		} else {
-			login = configuration.user;
-			emitMessage('login ok','message',socket);
-		}
-	});	
-
-	socket.on('create_user', function (data) {
-		var ret = null;
-		if (login == configuration.user){
-			createUser(data,socket);
-		} else {
-			emitMessage("You're not logged","err",socket);
-			io.emit('user disconnected');
-		}
-	});
-
-	socket.on('delete_user', function (data) {
-		var ret = null;
-		if (login == configuration.user){
-			deleteUser(data,socket);
-		} else {
-			emitMessage("You're not logged","err",socket);
-			io.emit('user disconnected');
-		}
-	});		
-
-	/*
-	 *	Disconnect
-	 */
-
-	socket.on('disconnect', function () {
-		io.emit('user disconnected');
-	});
-
-});
-
-/*	==========================================================================
  	SERVER FUNCTIONS
 	========================================================================== */
 
 var checkLogin = function(login,socket){
-	var ret = {
-		message: null,
-		type: null,
-	};
 	var password = getSha1sum(login.password);
 	var queryStructure = 'SELECT FROM SiloAdmin.Users WHERE login = ?? AND password = ??;';
 	var queryValues = [login.user,password];
@@ -137,136 +44,121 @@ var checkLogin = function(login,socket){
 
 		if (!err) {
 			if (typeof rows[0].login != undefined && rows[0].login != null ){
-				ret.message = 'Log with user : '+login.user;
-				ret.type = 'result';
+				emitMessage('Log with user : '+login.user,'message',socket);	
 			} else {
-				ret.message = 'User or password wrong';
-				ret.type = 'err';				
+				emitMessage('User or password wrong','err',socket);				
 			}	
 		}
 		else {
-			ret.message = 'Error while performing Query : SELECT FROM SiloAdmin.Users WHERE login = ?? AND password = ??';
-			ret.type = 'err';	
+			console.log('can not check user');
 		}
 		emitMessage(ret,socket);
 
 	});
 };
-
-var emitMessage = function(message,type,socket){
-
-	socket.emit('message',{message:message,type:type});
-
-};
-
 /*	==========================================================================
  	ADMIN FUNCTIONS
 	========================================================================== */
 
 
-var createUser = function(login,socket){
+var createUser = function(login){
 
-	try {
 
-		// Create a transaction
+	// Create a transaction
 
-		connection.beginTransaction(function(err){
+	connection.beginTransaction(function(err){
+
+		if (err) {
+		    console.log('Error 101');
+		    throw err;	
+		}
+
+		// Prepare user creation statement
+
+		var password = getSha1sum(login.password);
+		console.log('create user :',login.user,password);
+		var createUserQueryStructure = 'INSERT INTO SiloAdmin.Users (login,password) VALUES (?,?);';
+		var createUserQueryValues = [login.user,password];
+
+		var createUserQuery = mysql.format(createUserQueryStructure,createUserQueryValues);	
+		// Create user query
+
+		connection.query(createUserQuery, function(err, rows, fields){
 
 			if (err) {
-			    console.log('Error 101');
-			    throw err;	
+				console.log('Error 102');
+				return connection.rollback(function() {
+         			throw err;
+        		});
 			}
 
-			// Prepare user creation statement
+			// Prepare id recovery statement
 
-			var password = getSha1sum(login.password);
-			var createUserQueryStructure = 'INSERT INTO SiloAdmin.Users (login,password,id) VALUES (??,??,null);';
-			var createUserQueryValues = [login.user,password];
-			var createUserQuery = mysql.format(queryStructure,queryValues);		
+			var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ?;';
+			var getIdQueryValues = [login.user];
+			var getIdQuery = mysql.format(getIdQueryStructure,getIdQueryValues);				
 
-			// Create user query
+			// Recovery user id
 
-			connection.query(createUserQuery, function(err, rows, fields){
+			connection.query(getIdQuery, function(err, rows, fields){
 
 				if (err) {
-					console.log('Error 102');
+					console.log('Error 103');
 					return connection.rollback(function() {
-	         			throw err;
-	        		});
-				}
+						throw err;
+					});					
+				} 
 
-				// Prepare id recovery statement
+				// Prepare schema creation statement
 
-				var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ??;';
-				var getIdQueryValues = [login.user];
-				var getIdQuery = mysql.format(queryStructure,queryValues);				
+				var id = rows[0].id;
+				var schema = 'PatternSilo'+id;
 
-				// Recovery user id
+				var createSchemaQueryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
+				var createSchemaQueryValues = [schema];
+				var createSchemaQuery = mysql.format(createSchemaQueryStructure,createSchemaQueryValues);
 
-				connection.query(getIdQuery, function(err, rows, fields){
+				// Create schema
+
+				connection.query(createSchemaQuery, function(err, rows, fields){
 
 					if (err) {
-						console.log('Error 103');
+						console.log('Error 104');
 						return connection.rollback(function() {
 							throw err;
-						});					
-					} 
+						});	
+					}
 
-					// Prepare schema creation statement
+					// Prepare tables creation statement
 
-					var id = rows[0].id;
-					var schema = 'PatternSilo'+id;
+					fs = require('fs');
+					var createTablesQuery = fs.readFileSync('createDB.sql', 'utf8');
 
-					var createSchemaQueryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
-					var createSchemaQueryValues = [schema];
-					var createSchemaQuery = mysql.format(queryStructure,queryValues);
+					createTablesQuery = createTablesQuery.replace('mydb',schema);					
+					console.log(createTablesQuery);
+					// Create tables
 
-					// Create schema
-
-					connection.query(createSchemaQuery, function(err, rows, fields){
+					connection.query(createTablesQuery, function(err, rows, fields){
 
 						if (err) {
-							console.log('Error 104');
+							console.log('Error 105');
 							return connection.rollback(function() {
 								throw err;
 							});	
-						}
+						} 
 
-						// Prepare tables creation statement
-
-						fs = require('fs');
-						var createTablesQuery = fs.readFileSync('createDB.sql', 'utf8');
-
-						var createTablesQuery = query.replace('mydb',schema);					
-
-						// Create tables
-
-						connection.query(createTablesQuery, function(err, rows, fields){
-
-							if (err) {
-								console.log('Error 105');
-								return connection.rollback(function() {
-									throw err;
-								});	
-							} 
-
-							console.log('106')
-							emitMessage(100,'message',socket);
-
-						});
+						console.log('106')
 
 					});
 
 				});
 
-			});			
+			});
 
-		});
+		});			
 
-	} catch (ex) {
-		console.log(ex);
-		emitMessage(101,'err',socket);
-	}	
+	});
+
 
 };
 
@@ -308,3 +200,114 @@ var getSha1sum = function(string){
 	return shasum.update(string).digest('hex');
 
 };
+
+/*	==========================================================================
+ 	SOCKET FUNCTIONS
+	========================================================================== */
+
+io.on('connection', function (socket) {
+
+	var emitMessage = function(message,type){
+
+		socket.emit('message',{message:message,type:type});
+
+	};
+
+	socket.emit('message','Welcom')
+
+	var socketID = socket.id;
+	console.log(socketID+' is connected');
+
+	socket.on('ping', function(data){
+
+		console.log('ping : ',data);
+		socket.emit('message','pong');
+
+	})
+
+	var login = null;
+	var dbObject = null;
+
+	/* User connection */
+
+	/*	
+	 *	Check the login and create the DBObject
+	 */
+
+	socket.on('login', function (data) {
+		checkLogin(data,socket);
+	});
+
+	/*	data = {
+	 *		query : "query"; 
+	 *		values : {};
+	 *	}
+	 *	see specification in documentation
+	 */
+
+	socket.on('query', function (data) {
+		if (login != null){
+			dbObject.run(data,socket);
+		} else {
+			emitMessage("You're not logged","err",socket);
+			io.emit('user disconnected');			
+		}
+	});	
+
+	/* Admin connection */
+
+	var callback = function(){
+		console.log('Ho my got ! ERROR');
+	};
+
+	/*	
+	 *	Check the password for admin connection
+	 */
+
+	socket.on('admin', function (data) {
+		if(data != configuration.password){
+			emitMessage('login wrong','err');
+			io.emit('user disconnected');
+			console.log('Someone try to connect as Admin');
+		} else {
+			login = configuration.user;
+			emitMessage('login ok','message');
+			console.log('Admin connected');
+		}
+	});	
+
+	socket.on('create_user', function (data) {
+		if (login == configuration.user){
+			try {
+				createUser(data);
+				emitMessage(100,'message');
+			} catch (ex) {
+				console.log(ex);
+				callback(ex);
+				emitMessage(101,'err');
+			}	
+		} else {
+			emitMessage("You're not logged","err");
+			io.emit('user disconnected');
+		}
+	});
+
+	socket.on('delete_user', function (data) {
+		var ret = null;
+		if (login == configuration.user){
+			deleteUser(data,socket);
+		} else {
+			emitMessage("You're not logged","err");
+			io.emit('user disconnected');
+		}
+	});		
+
+	/*
+	 *	Disconnect
+	 */
+
+	socket.on('disconnect', function () {
+		io.emit('user disconnected');
+	});
+
+});
