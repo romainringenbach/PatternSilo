@@ -36,7 +36,7 @@ var connection = mysql.createConnection(configuration);
 
 var checkLogin = function(login,socket){
 	var password = getSha1sum(login.password);
-	var queryStructure = 'SELECT FROM SiloAdmin.Users WHERE login = ?? AND password = ??;';
+	var queryStructure = 'SELECT * FROM `SiloAdmin`.`Users` WHERE login = ? AND password = ?;';
 	var queryValues = [login.user,password];
 	var query = mysql.format(queryStructure,queryValues);		
 
@@ -44,15 +44,15 @@ var checkLogin = function(login,socket){
 
 		if (!err) {
 			if (typeof rows[0].login != undefined && rows[0].login != null ){
-				emitMessage('Log with user : '+login.user,'message',socket);	
+				socket.emit('message',{message:'Log with user : '+login.user,type:'message'});	
 			} else {
-				emitMessage('User or password wrong','err',socket);				
+				socket.emit('message',{message:'User or password wrong',type:'err'});				
 			}	
 		}
 		else {
-			console.log('can not check user');
+			console.log('try to connect as',login);
+			throw err;
 		}
-		emitMessage(ret,socket);
 
 	});
 };
@@ -132,9 +132,9 @@ var createUser = function(login){
 					// Prepare tables creation statement
 
 					fs = require('fs');
-					var createTablesQuery = fs.readFileSync('createDB.sql', 'utf8');
+					var script = fs.readFileSync('createDB.sql', 'utf8');
 
-					createTablesQuery = createTablesQuery.replace('mydb',schema);					
+					createTablesQuery = script.replace(/mydb/g,schema);					
 					console.log(createTablesQuery);
 					// Create tables
 
@@ -218,7 +218,7 @@ io.on('connection', function (socket) {
 	var socketID = socket.id;
 	console.log(socketID+' is connected');
 
-	socket.on('ping', function(data){
+	socket.on('lol', function(data){
 
 		console.log('ping : ',data);
 		socket.emit('message','pong');
@@ -235,7 +235,13 @@ io.on('connection', function (socket) {
 	 */
 
 	socket.on('login', function (data) {
-		checkLogin(data,socket);
+		try {
+			checkLogin(data,socket);
+			login='ok';
+		} catch(ex){
+			console.log(ex);
+			emitMessage('Can not log','err');
+		}
 	});
 
 	/*	data = {
@@ -247,7 +253,8 @@ io.on('connection', function (socket) {
 
 	socket.on('query', function (data) {
 		if (login != null){
-			dbObject.run(data,socket);
+			//dbObject.run(data,socket);
+			emitMessage('not work for the moment','err');
 		} else {
 			emitMessage("You're not logged","err",socket);
 			io.emit('user disconnected');			
