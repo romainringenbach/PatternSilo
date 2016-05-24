@@ -243,7 +243,7 @@ io.on('connection', function (socket) {
 		}
 		emitMessage(message,type);
 
-		//dbObject = new DBObject(socket,);
+		//dbObject = new DBObject(socket,user);
 	};
 
 	socket.emit('message','Welcom')
@@ -272,13 +272,6 @@ io.on('connection', function (socket) {
 			emitMessage('Can not log','err');
 		}
 	});
-
-	/*	data = {
-	 *		query : "query"; 
-	 *		values : {};
-	 *	}
-	 *	see specification in documentation
-	 */
 
 	socket.on('query', function (data) {
 		if (login != null){
