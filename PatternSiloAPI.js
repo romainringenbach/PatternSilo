@@ -34,7 +34,7 @@ var connection = mysql.createConnection(configuration);
  	SERVER FUNCTIONS
 	========================================================================== */
 
-var checkLogin = function(login,socket){
+var checkLogin = function(login,callback){
 	var password = getSha1sum(login.password);
 	var queryStructure = 'SELECT * FROM `SiloAdmin`.`Users` WHERE login = ? AND password = ?;';
 	var queryValues = [login.user,password];
@@ -43,23 +43,23 @@ var checkLogin = function(login,socket){
 	connection.query(query, function(err, rows, fields){
 
 		if (!err) {
-			if (typeof rows[0].login != undefined && rows[0].login != null ){
-				socket.emit('message',{message:'Log with user : '+login.user,type:'message'});	
+			if (rows.length != 0){
+				callback(login.user,true,'Log with user : '+login.user,'message');	
 			} else {
-				socket.emit('message',{message:'User or password wrong',type:'err'});				
+				callback(login.user,false,'User or password wrong','err');				
 			}	
 		}
 		else {
-			console.log('try to connect as',login);
-			throw err;
+			console.log(err);
 		}
 
 	});
+
+
 };
 /*	==========================================================================
  	ADMIN FUNCTIONS
 	========================================================================== */
-
 
 var createUser = function(login){
 
@@ -73,17 +73,7 @@ var createUser = function(login){
 		    throw err;	
 		}
 
-		// Prepare user creation statement
-
-		var password = getSha1sum(login.password);
-		console.log('create user :',login.user,password);
-		var createUserQueryStructure = 'INSERT INTO SiloAdmin.Users (login,password) VALUES (?,?);';
-		var createUserQueryValues = [login.user,password];
-
-		var createUserQuery = mysql.format(createUserQueryStructure,createUserQueryValues);	
-		// Create user query
-
-		connection.query(createUserQuery, function(err, rows, fields){
+		connection.query('SET autocommit=0;',function(err, rows, fields){
 
 			if (err) {
 				console.log('Error 102');
@@ -92,74 +82,108 @@ var createUser = function(login){
         		});
 			}
 
-			// Prepare id recovery statement
+			// Prepare user creation statement
 
-			var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ?;';
-			var getIdQueryValues = [login.user];
-			var getIdQuery = mysql.format(getIdQueryStructure,getIdQueryValues);				
+			var password = getSha1sum(login.password);
+			console.log('create user :',login.user,password);
+			var createUserQueryStructure = 'INSERT INTO SiloAdmin.Users (login,password) VALUES (?,?);';
+			var createUserQueryValues = [login.user,password];
 
-			// Recovery user id
+			var createUserQuery = mysql.format(createUserQueryStructure,createUserQueryValues);	
+			// Create user query
 
-			connection.query(getIdQuery, function(err, rows, fields){
+			connection.query(createUserQuery, function(err, rows, fields){
 
 				if (err) {
 					console.log('Error 103');
 					return connection.rollback(function() {
-						throw err;
-					});					
-				} 
+	         			throw err;
+	        		});
+				}
 
-				// Prepare schema creation statement
+				// Prepare id recovery statement
 
-				var id = rows[0].id;
-				var schema = 'PatternSilo'+id;
+				var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ?;';
+				var getIdQueryValues = [login.user];
+				var getIdQuery = mysql.format(getIdQueryStructure,getIdQueryValues);				
 
-				var createSchemaQueryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
-				var createSchemaQueryValues = [schema];
-				var createSchemaQuery = mysql.format(createSchemaQueryStructure,createSchemaQueryValues);
 
-				// Create schema
+				// Recovery user id
 
-				connection.query(createSchemaQuery, function(err, rows, fields){
+				connection.query(getIdQuery, function(err, rows, fields){
 
 					if (err) {
 						console.log('Error 104');
 						return connection.rollback(function() {
 							throw err;
-						});	
-					}
+						});					
+					} 
 
-					// Prepare tables creation statement
+					// Prepare schema creation statement
 
-					fs = require('fs');
-					var script = fs.readFileSync('createDB.sql', 'utf8');
+					var id = rows[0].id;
+					var schema = 'PatternSilo'+id;
 
-					createTablesQuery = script.replace(/mydb/g,schema);					
-					console.log(createTablesQuery);
-					// Create tables
+					var createSchemaQueryStructure = 'CREATE SCHEMA IF NOT EXISTS ?? DEFAULT CHARACTER SET utf8 ;';
+					var createSchemaQueryValues = [schema];
+					var createSchemaQuery = mysql.format(createSchemaQueryStructure,createSchemaQueryValues);
 
-					connection.query(createTablesQuery, function(err, rows, fields){
+					// Create schema
+
+					connection.query(createSchemaQuery, function(err, rows, fields){
 
 						if (err) {
 							console.log('Error 105');
 							return connection.rollback(function() {
 								throw err;
 							});	
-						} 
+						}
 
-						console.log('106')
+						// Prepare tables creation statement
 
+						fs = require('fs');
+						var script = fs.readFileSync('createDB.sql', 'utf8');
+
+						createTablesQuery = script.replace(/mydb/g,schema);					
+						
+						// Create tables
+
+						connection.query(createTablesQuery, function(err, rows, fields){
+							if (err) {
+								console.log('Error 106');
+								return connection.rollback(function() {
+									throw err;
+								});	
+							} 
+
+							// Commit
+
+							connection.commit(function(err) {
+						        if (err) {
+						        	console.log('Error 107');
+						        	return connection.rollback(function() {
+						            	throw err;
+						          	});
+						        }
+
+						        // Reset auto commit to 1
+
+								connection.query('SET autocommit=1;',function(err, rows, fields) {
+							        if (err) {
+							        	console.log('Error 108');
+							        	return connection.rollback(function() {
+							            	throw err;
+							          	});
+							        }
+							        console.log('success!');
+						      	});					        
+							});						
+						});
 					});
-
 				});
-
-			});
-
-		});			
-
+			});			
+		});
 	});
-
-
 };
 
 /*
@@ -168,12 +192,8 @@ var createUser = function(login){
  */
 
 var deleteUser = function(user,socket){
-	var ret = {
-		message: null,
-		type: null,
-	};
 
-	var queryStructure = 'DELETE FROM SiloAdmin.Users WHERE login = ??;';
+	var queryStructure = 'DELETE FROM SiloAdmin.Users WHERE login = ?;';
 	var queryValues = [user];
 	var query = mysql.format(queryStructure,queryValues);	
 
@@ -207,10 +227,23 @@ var getSha1sum = function(string){
 
 io.on('connection', function (socket) {
 
+	var login = null;
+	var dbObject = null;
+
 	var emitMessage = function(message,type){
 
 		socket.emit('message',{message:message,type:type});
 
+	};
+
+	var loginOk = function(user,awnser,message,type){
+		
+		if (awnser) {
+			login = 'ok';
+		}
+		emitMessage(message,type);
+
+		//dbObject = new DBObject(socket,);
 	};
 
 	socket.emit('message','Welcom')
@@ -225,9 +258,6 @@ io.on('connection', function (socket) {
 
 	})
 
-	var login = null;
-	var dbObject = null;
-
 	/* User connection */
 
 	/*	
@@ -236,8 +266,7 @@ io.on('connection', function (socket) {
 
 	socket.on('login', function (data) {
 		try {
-			checkLogin(data,socket);
-			login='ok';
+			checkLogin(data,loginOk);
 		} catch(ex){
 			console.log(ex);
 			emitMessage('Can not log','err');
@@ -310,11 +339,20 @@ io.on('connection', function (socket) {
 	});		
 
 	/*
-	 *	Disconnect
+	 *	Disconnect client
 	 */
 
 	socket.on('disconnect', function () {
 		io.emit('user disconnected');
 	});
+
+	/*
+	 *	Disconnect User (ex: for another login...)
+	 */
+
+	socket.on('logout', function(){
+		emitMessage('You logout','message');
+		login = null;
+	}); 
 
 });
