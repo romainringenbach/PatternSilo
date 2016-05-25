@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS `mydb`.`Patterns` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `type` VARCHAR(20) NOT NULL,
   `parent` INT NULL,
-  `weigth` INT NOT NULL,
   PRIMARY KEY (`id`, `type`),
   INDEX `fk_Patterns_PatternTypes_idx` (`type` ASC),
   INDEX `fk_Patterns_Patterns1_idx` (`parent` ASC),
@@ -63,11 +62,11 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Unit`
+-- Table `mydb`.`Units`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `mydb`.`Unit` ;
+DROP TABLE IF EXISTS `mydb`.`Units` ;
 
-CREATE TABLE IF NOT EXISTS `mydb`.`Unit` (
+CREATE TABLE IF NOT EXISTS `mydb`.`Units` (
   `type` VARCHAR(20) NOT NULL,
   PRIMARY KEY (`type`))
 ENGINE = InnoDB;
