@@ -142,6 +142,8 @@ var createUser = function(login){
 						// Prepare tables creation statement
 
 						fs = require('fs');
+
+						// Should be async call
 						var script = fs.readFileSync('createDB.sql', 'utf8');
 
 						createTablesQuery = script.replace(/mydb/g,schema);					
