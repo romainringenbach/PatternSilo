@@ -1,3 +1,52 @@
+/*	==========================================================================
+	GLOBAL DOCUMENTATION
+	========================================================================== */
+
+/*
+ *	pattern = {
+ *		id: int,
+ *		type: patternType{},
+ *		parent: null | pattern,
+ *		characteristics: array(characteristic{}),
+ *	}
+ *
+ *	patternType = {
+ *		type: string,
+ *		characteristics: array(characteristic{}) // note that the characteristic object is limited to the type, no values, no unit.	
+ *	}
+ *
+ *	characteristic musn't be defined by the unit. Give it a signification, like height, width etc... a complet signification
+ *	for each type of characteristic, the system allow only one couple of values for a pattern
+ *
+ *	characteristic = {
+ *		type: string,
+ *		value: what you want in primary type : int, string, boolean  ! can't be null / undefined
+ *		minValue: what you want in primary type : int, string, boolean  ! can't be null / undefined
+ *		maxValue: what you want in primary type : int, string, boolean  ! can't be null / undefined
+ *		unit: string,	
+ *	}
+ *
+ */
+
+
+
+/* List of code and functions can be use by run()
+ * rps : readPatterns => return a list of object of Pattern modele
+ * rp : readPattern => return a list of the asked pattern (by id)
+ * rpt : readPatternTypes => return a list of patternTypes object
+ * rc : readCharacteristics => return a list of characteristic
+ * wp : writePattern => take a pattern and push it in database, if a id is given (in the pattern object), write on the existing pattern
+ * wps : writePatterns => take patterns and push it in database, if a id is given (in the pattern object), write on the existing pattern
+ * wpt : writePatternType => create a new patternType
+ * wpts : writePatternTypes => create new patternTypes
+ * wc : writeCharacteristic => write a new characteristic
+ * wcs : writeCharacteristics => write new characteristics
+ */
+
+
+
+
+
 var DBObject = function(socket,user,ready){
 
 /*	==========================================================================
@@ -38,6 +87,12 @@ var DBObject = function(socket,user,ready){
 	/// 
 };
 
+/* Will socket couple of code and function, 
+ * after each function declaration, push it in this array with the code
+ */
+
+DBObject.prototype.listOfQueryFunctions = new Array();
+
 DBObject.prototype.emitOnSocket = function(canal,data) {
 	this.socket.emit(canal,data);
 };
@@ -49,6 +104,16 @@ DBObject.prototype.emitMessageOnSocket = function(message,type) {
 DBObject.prototype.pushQuery = function(query,callback){
 	connection.query(query, callback)
 };
+
+/*
+ *	query = {
+ *		id: allow the client to know from witch of his queries come the data.
+ *		canal: give the canal to emit with the socket
+ *		codeQuery: code of the query, see documentation
+ *		data: see the documentation of the asket code to know how the data need to be design
+ *	}
+ *
+ */
 
 DBObject.prototype.run = function(query) {
 
