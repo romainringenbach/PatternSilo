@@ -65,16 +65,62 @@ var DBObject = function(socket,user,ready){
 	GLOBAL ARGUMENTS
 	========================================================================== */
 
+	this.id = null;
+
 	this.patternsList = new Array();
 	this.currentPattern = null;	
 	this.schema = null;
 
-	this.queries = {
+	this.queries = null;
 
-		getAllFrom : 'SELECT * FROM ??',
-		getAllFromWhere : 'SELECT * FROM ?? WHERE ?? = ?'
+	this.async = require("async");
 
-	}	
+	this.async.waterfall(
+		[
+			// Query to mysql
+			function(callback) {  
+
+				// Prepare id recovery statement
+
+				var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ?;';
+				var getIdQueryValues = [user];
+				var getIdQuery = mysql.format(getIdQueryStructure,getIdQueryValues);				
+
+				// Recovery user id
+
+				this.connection.query(getIdQuery,callback);			
+
+			},
+			// 
+			function(rows, callback) { 
+
+				this.id = rows[0].id;
+
+				this.queries = {
+
+					getAllFrom : 'SELECT * FROM `PatternSilo'+this.id+'`.??',
+					getAllFromWhere : 'SELECT * FROM `PatternSilo'+this.id+'`.?? WHERE ?? = ?',
+					insertPattern : 'INSERT INTO `PatternSilo'+this.id+'`.Patterns (type,parent) VALUES (??,??)',
+					insertCharacteristic: 'INSERT INTO `PatternSilo'+this.id+'`.Characteristics (type) VALUE (??)',
+					insertPatternType: 'INSERT INTO `PatternSilo'+this.id+'`.PatternTypes (type) VALUES (??)',
+					insertUnit: 'INSERT INTO `PatternSilo'+this.id+'`.Units (type) VALUES (??)',
+					insertPatternCharacteristic: 'INSERT INTO `PatternSilo'+this.id+'`.PatternsCharacteristics (id,type,value,minValue,maxValue,unit) VALUES (??,??,??,??,??,??)'
+
+				};	
+
+				callback();
+
+			},
+			// 
+			function() { console.log('Prepare queries : OK'); }
+		],
+		// Erreur
+		function(err) { console.log('Prepare queries : FAIL: ' + err.message); }
+	);
+
+	this.async = require("async");	
+
+
 
 	/// Récupérer l'ID
 
