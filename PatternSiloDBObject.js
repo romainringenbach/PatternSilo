@@ -44,10 +44,7 @@
  */
 
 
-
-
-
-var DBObject = function(socket,user,ready){
+var DBObject = function(socket,user,ready,clientCallback){
 
 /*	==========================================================================
  	MYSQL CONFIGURATION
@@ -57,15 +54,16 @@ var DBObject = function(socket,user,ready){
 
 	this.fs = require('fs')
 
-	this.configuration = JSON.parse(fs.readFileSync('mysql_conf.json', 'utf8'););
+	this.configuration = null;
 
-	this.connection = mysql.createConnection(configuration);
+	this.connection = null;
 
 /*	==========================================================================
 	GLOBAL ARGUMENTS
 	========================================================================== */
 
 	this.id = null;
+	this.socket = socket;
 
 	this.patternsList = new Array();
 	this.currentPattern = null;	
@@ -75,68 +73,65 @@ var DBObject = function(socket,user,ready){
 
 	this.async = require("async");
 
+	var dbObject = this;
+
+	var callback = function(err, data){
+		console.log('callbaku');
+	};
+
 	this.async.waterfall(
 		[
-			// Query to mysql
-			function(callback) {  
+			function(callback) {
+				dbObject.fs.readFile('mysql_conf.json', 'utf8',callback);
+				console.log('Read mysql configuration : OK');
+			},
+			function(conf,callback) {  
 
+				dbObject.configuration = JSON.parse(conf);
+				dbObject.connection = dbObject.mysql.createConnection(dbObject.configuration);
 				// Prepare id recovery statement
 
 				var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ?;';
 				var getIdQueryValues = [user];
-				var getIdQuery = mysql.format(getIdQueryStructure,getIdQueryValues);				
+				var getIdQuery = dbObject.mysql.format(getIdQueryStructure,getIdQueryValues);				
 
 				// Recovery user id
 
-				this.connection.query(getIdQuery,callback);			
+				dbObject.connection.query(getIdQuery,callback);	
+				console.log('Get the if of '+user+' : OK');		
 
 			},
 			// 
 			function(rows, callback) { 
 
-				this.id = rows[0].id;
+				dbObject.id = rows[0].id;
 
-				this.queries = {
+				dbObject.queries = {
 
-					getAllFrom : 'SELECT * FROM `PatternSilo'+this.id+'`.??',
-					getAllFromWhere : 'SELECT * FROM `PatternSilo'+this.id+'`.?? WHERE ?? = ?',
-					insertPattern : 'INSERT INTO `PatternSilo'+this.id+'`.Patterns (type,parent) VALUES (??,??)',
-					insertCharacteristic: 'INSERT INTO `PatternSilo'+this.id+'`.Characteristics (type) VALUE (??)',
-					insertPatternType: 'INSERT INTO `PatternSilo'+this.id+'`.PatternTypes (type) VALUES (??)',
-					insertUnit: 'INSERT INTO `PatternSilo'+this.id+'`.Units (type) VALUES (??)',
-					insertPatternCharacteristic: 'INSERT INTO `PatternSilo'+this.id+'`.PatternsCharacteristics (id,type,value,minValue,maxValue,unit) VALUES (??,??,??,??,??,??)'
+					getAllFrom : 'SELECT * FROM `PatternSilo'+dbObject.id+'`.??',
+					getAllFromWhere : 'SELECT * FROM `PatternSilo'+dbObject.id+'`.?? WHERE ?? = ?',
+					insertPattern : 'INSERT INTO `PatternSilo'+dbObject.id+'`.Patterns (type,parent) VALUES (??,??)',
+					insertCharacteristic: 'INSERT INTO `PatternSilo'+dbObject.id+'`.Characteristics (type) VALUE (??)',
+					insertPatternType: 'INSERT INTO `PatternSilo'+dbObject.id+'`.PatternTypes (type) VALUES (??)',
+					insertUnit: 'INSERT INTO `PatternSilo'+dbObject.id+'`.Units (type) VALUES (??)',
+					insertPatternCharacteristic: 'INSERT INTO `PatternSilo'+dbObject.id+'`.PatternsCharacteristics (id,type,value,minValue,maxValue,unit) VALUES (??,??,??,??,??,??)'
 
 				};	
 
-				callback();
-
+				console.log('Prepare queries : OK'); 
+				dbObject.socket.emit(clientCallback,'hahahaha');
+				ready(true,dbObject);
 			},
-			// 
-			function() { console.log('Prepare queries : OK'); }
 		],
 		// Erreur
-		function(err) { console.log('Prepare queries : FAIL: ' + err.message); }
+		function(err) { console.log('Prepare DBObject : FAIL: ' + err.message); ready(false,null);}
 	);
-
-	this.async = require("async");	
-
-
-
-	/// Récupérer l'ID
-
-	/// Récupérer le schema
-
-	/// Mettre un status : ready / notReady
-
-	/// Récupérer l'intégralité des données et la renvoyée sur un canal prédéfinie ?
-
-	/// 
 };
 
 /* Will socket couple of code and function, 
  * after each function declaration, push it in this array with the code
  */
-
+/*
 DBObject.prototype.listOfQueryFunctions = new Array();
 
 DBObject.prototype.emitOnSocket = function(canal,data) {
@@ -149,7 +144,7 @@ DBObject.prototype.emitMessageOnSocket = function(message,type) {
 
 DBObject.prototype.pushQuery = function(query,callback){
 	connection.query(query, callback)
-};
+};*/
 
 /*
  *	query = {
@@ -160,7 +155,7 @@ DBObject.prototype.pushQuery = function(query,callback){
  *	}
  *
  */
-
+/*
 DBObject.prototype.run = function(query) {
 
 
@@ -170,7 +165,7 @@ DBObject.prototype.run = function(query) {
 DBObject.prototype.readDB = function(first_argument) {
 	this.getPatternsList();
 
-	for each(pattern in this.patternsList){
+	for(pattern in this.patternsList){
 		this.currentPattern = pattern;
 		pattern.characteristics = new Array();
 		this.getPatternCharac(pattern.id);
@@ -199,193 +194,12 @@ DBObject.prototype.getPatternCharac = function(patternId) {
 };
 DBObject.prototype.getPatternCharacCallBack = function(err, rows, fields) {
 	if (!err) {
-		for each(row in rows){
+		for(row in rows){
 			this.currentPattern.characteristics.push(row);
 		}
 	} else {
 		console.log(err);
 	}
-};
+};*/
 
-
-
-
-
-
-
-
-
-
-
-
-
-/*	==========================================================================
- 	BASIC MYSQL CONFIGURATIONS
-	========================================================================== */
-
-var mysql      = require('mysql');
-var connection = mysql.createConnection({
-	multipleStatements		: true,	
-	host					: 'localhost',
-	port     				: 'port',
-	user     				: '< MySQL username >',
-	password 				: '< MySQL password >',
-	database 				: '<your database name>'
-});
-
-connection = mysql.createConnection({multipleStatements: true});
-
-/*	==========================================================================
-	GLOBAL ARGUMENTS
-	========================================================================== */
-
-var clients = new Array();
-
-var queryPool = {
-
-	getAllFrom : 'SELECT * FROM ??',
-	getAllFromWhere : 'SELECT * FROM ?? WHERE ?? = ?'
-
-}
-
-/*	==========================================================================
-	OBJECTS
-	========================================================================== */
-var DBReader = function(){
-
-	var patternsList = new Array();
-	var currentPattern = null;
-
-};
-
-DBReader.prototype.getPatternsList = function() {
-	var queryStructure = queryPool.getAllFrom;
-	var queryValues = ['Patterns'];
-	var query = mysql.format(queryStructure,queryValues);	
-	pushQuery(query,this.getPatternsListCallBack);
-};
-DBReader.prototype.getPatternsListCallBack = function(err, rows, fields) {
-	this.patternsList = rows;
-	if (!err) {
-		this.patternsList = rows;
-	} else {
-		console.log(err);
-	}	
-};
-DBReader.prototype.getPatternCharac = function(patternId) {
-	var queryStructure = queryPool.getAllFromWhere;
-	var queryValues = ['PatternsCharacteristics','id',patternId];
-	var query = mysql.format(queryStructure,queryValues);
-	pushQuery(query,this.getPatternCharacCallBack);	
-};
-DBReader.prototype.getPatternCharacCallBack = function(err, rows, fields) {
-	if (!err) {
-		for each(row in rows){
-			this.currentPattern.characteristics.push(row);
-		}
-	} else {
-		console.log(err);
-	}
-};
-DBReader.prototype.run = function(askedData) {
-
-	if () {}
-
-
-	
-	this.getPatternsList();
-
-	for each(pattern in this.patternsList){
-		this.currentPattern = pattern;
-		pattern.characteristics = new Array();
-		this.getPatternCharac(pattern.id);
-	}
-
-};
-
-var DBWritter = function(){
-
-}
-
-
-/*	==========================================================================
-	STANDALONE FUNCTIONS
-	========================================================================== */
-
-var queryResult = function(err, rows, fields){
-
-	if (!err)
-	    console.log('The solution is: ', rows);
-	else
-	    console.log('Error while performing Query.');	
-
-};
-
-var pushQuery = function(query,callback){
-
-	connection.query(query, callback)
-};
-
-	//> Queries Functions - Get data
-
-var selectAll = new function(table){
-
-	query = 'SELECT * FROM '+table;
-	pushQuery(query);
-
-};
-
-	//> Queries Functions - Push data
-
-	//> Queries Functions - Create DB
-
-	//> API Functions
-
-var createDB = function(err,data){
-
-	if(!data && !err){
-
-		fs = require('fs')
-		fs.readFile('createDB.sql', 'utf8', createDB);
-
-	} else {
-
-		pushQuery(data,queryResult)
-
-	}	
-
-};
-
-
-var readDB = function(){
-
-	var dbReader = new DBReader()	
-
-};
-
-
-
-var readPatternType = function(type){};
-var readPatternTypeCallBack = function(err, rows, fields){};
-
-var readPattern = function(id){};
-var readPatternCallBack = function(err, rows, fields){};
-
-var writeDB = function(){};
-var writeDBCallBack = function(err, rows, fields){};
-
-var writePatternType = function(patternType){};
-var writePatternTypeCallBack = function(err, rows, fields){};
-
-var writePattern = function(pattern,alreadyExist){};
-var writePatternCallBack = function(err, rows, fields){};
-
-var isPattern = function(pattern){};
-var isPatternCallBack = function(err, rows, fields){
-
-	if (rows.length > 0) {
-		writePattern
-	};
-
-};
-
+module.exports = DBObject;

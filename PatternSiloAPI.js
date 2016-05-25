@@ -20,7 +20,9 @@ var io = require('socket.io').listen(server);
 
 var mysql = require('mysql');
 
-var fs = require('fs')
+var DBObject = require('./PatternSiloDBObject.js');
+
+var fs = require('fs');
 
 var configuration = JSON.parse(fs.readFileSync('mysql_conf.json', 'utf8'));
 
@@ -34,7 +36,14 @@ var connection = mysql.createConnection(configuration);
  	SERVER FUNCTIONS
 	========================================================================== */
 
-var checkLogin = function(login,callback){
+var emitMessage = function(message,type){
+
+	socket.emit('message',{message:message,type:type});
+
+};
+
+var checkLogin = function(login,socket,dbObjectReady){
+
 	var password = getSha1sum(login.password);
 	var queryStructure = 'SELECT * FROM `SiloAdmin`.`Users` WHERE login = ? AND password = ?;';
 	var queryValues = [login.user,password];
@@ -44,9 +53,10 @@ var checkLogin = function(login,callback){
 
 		if (!err) {
 			if (rows.length != 0){
-				callback(login.user,true,'Log with user : '+login.user,'message');	
+				dbObject = new DBObject(socket,login.user,dbObjectReady,login.callback);
 			} else {
-				callback(login.user,false,'User or password wrong','err');				
+				emitMessage('User or password wrong','err');
+				socket.emit(login.callback,null);		
 			}	
 		}
 		else {
@@ -232,26 +242,18 @@ io.on('connection', function (socket) {
 	var login = null;
 	var dbObject = null;
 
-	var emitMessage = function(message,type){
+	var dbObjectReady = function(ready,data){
 
-		socket.emit('message',{message:message,type:type});
-
-	};
-
-	var loginOk = function(user,awnser,message,type){
-		
-		if (awnser) {
+		if (ready) {
+			dbObject = data;
 			login = 'ok';
-		}
-		emitMessage(message,type);
-
-		//dbObject = new DBObject(socket,user);
+		};
 	};
 
 	socket.emit('message','Welcom')
 
 	var socketID = socket.id;
-	console.log(socketID+' is connected');
+	console.log(socketID+' is connected');	
 
 	socket.on('lol', function(data){
 
@@ -268,22 +270,27 @@ io.on('connection', function (socket) {
 
 	socket.on('login', function (data) {
 		try {
-			checkLogin(data,loginOk);
+			checkLogin(data,socket,dbObjectReady);
 		} catch(ex){
 			console.log(ex);
 			emitMessage('Can not log','err');
 		}
-	});
+	});	
 
 	socket.on('query', function (data) {
 		if (login != null){
+			socket.emit('message','not avaible');
+			//if (data.id) {
+			//	emitMessage('Processing query'+data.id,'message');
+			//} else {
+			//	emitMessage('ID is missing, query will be refused','err');
+			//}
 			//dbObject.run(data,socket);
-			emitMessage('not work for the moment','err');
 		} else {
 			emitMessage("You're not logged","err",socket);
 			io.emit('user disconnected');			
 		}
-	});	
+	});
 
 	/* Admin connection */
 

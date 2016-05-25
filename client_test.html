@@ -19,12 +19,16 @@
     console.log(data);
   });
 
+  socket.on('connection_ready',function (data) {
+    console.log(data);
+  });
+
   var connectAdmin = function(password){
   	socket.emit('admin',password);
   };
 
   var connectUser = function(user,password){
-  	socket.emit('login',{user:user,password:password});
+  	socket.emit('login',{user:user,password:password,callback:'connection_ready'});
   };
 
   var query = function(data){
