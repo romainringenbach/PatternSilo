@@ -36,7 +36,7 @@ var connection = mysql.createConnection(configuration);
  	SERVER FUNCTIONS
 	========================================================================== */
 
-var emitMessage = function(message,type){
+var emitMessage = function(message,type,socket){
 
 	socket.emit('message',{message:message,type:type});
 
@@ -55,7 +55,7 @@ var checkLogin = function(login,socket,dbObjectReady){
 			if (rows.length != 0){
 				dbObject = new DBObject(socket,login.user,dbObjectReady,login.callback);
 			} else {
-				emitMessage('User or password wrong','err');
+				emitMessage('User or password wrong','err',socket);
 				socket.emit(login.callback,null);		
 			}	
 		}
@@ -242,18 +242,21 @@ io.on('connection', function (socket) {
 	var login = null;
 	var dbObject = null;
 
+
+	socket.emit('message','Welcom');
+
+	var socketID = socket.id;
+	console.log(socketID+' is connected');
+
 	var dbObjectReady = function(ready,data){
 
 		if (ready) {
 			dbObject = data;
 			login = 'ok';
+			console.log(socketID+' is '+dbObject.user);
+			emitMessage('You are logged as '+dbObject.user,'message',socket);
 		};
-	};
-
-	socket.emit('message','Welcom')
-
-	var socketID = socket.id;
-	console.log(socketID+' is connected');	
+	};	
 
 	socket.on('lol', function(data){
 
@@ -273,7 +276,7 @@ io.on('connection', function (socket) {
 			checkLogin(data,socket,dbObjectReady);
 		} catch(ex){
 			console.log(ex);
-			emitMessage('Can not log','err');
+			emitMessage('Can not log','err',socket);
 		}
 	});	
 
@@ -281,9 +284,9 @@ io.on('connection', function (socket) {
 		if (login != null){
 			socket.emit('message','not avaible');
 			//if (data.id) {
-			//	emitMessage('Processing query'+data.id,'message');
+			//	emitMessage('Processing query'+data.id,'message',socket);
 			//} else {
-			//	emitMessage('ID is missing, query will be refused','err');
+			//	emitMessage('ID is missing, query will be refused','err',socket);
 			//}
 			//dbObject.run(data,socket);
 		} else {
@@ -309,7 +312,7 @@ io.on('connection', function (socket) {
 			console.log('Someone try to connect as Admin');
 		} else {
 			login = configuration.user;
-			emitMessage('login ok','message');
+			emitMessage('login ok','message',socket);
 			console.log('Admin connected');
 		}
 	});	
@@ -318,14 +321,14 @@ io.on('connection', function (socket) {
 		if (login == configuration.user){
 			try {
 				createUser(data);
-				emitMessage(100,'message');
+				emitMessage(100,'message',socket);
 			} catch (ex) {
 				console.log(ex);
 				callback(ex);
-				emitMessage(101,'err');
+				emitMessage(101,'err',socket);
 			}	
 		} else {
-			emitMessage("You're not logged","err");
+			emitMessage("You're not logged","err",socket);
 			io.emit('user disconnected');
 		}
 	});
@@ -335,7 +338,7 @@ io.on('connection', function (socket) {
 		if (login == configuration.user){
 			deleteUser(data,socket);
 		} else {
-			emitMessage("You're not logged","err");
+			emitMessage("You're not logged","err",socket);
 			io.emit('user disconnected');
 		}
 	});		
@@ -353,7 +356,7 @@ io.on('connection', function (socket) {
 	 */
 
 	socket.on('logout', function(){
-		emitMessage('You logout','message');
+		emitMessage('You logout','message',socket);
 		login = null;
 	}); 
 

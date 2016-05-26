@@ -44,7 +44,7 @@
  */
 
 
-var DBObject = function(socket,user,ready,clientCallback){
+var DBObject = function(socket,user,ready,clientCallback,emitMessage){
 
 /*	==========================================================================
  	MYSQL CONFIGURATION
@@ -64,6 +64,7 @@ var DBObject = function(socket,user,ready,clientCallback){
 
 	this.id = null;
 	this.socket = socket;
+	this.user = user;
 
 	this.patternsList = new Array();
 	this.currentPattern = null;	
@@ -76,7 +77,7 @@ var DBObject = function(socket,user,ready,clientCallback){
 	var dbObject = this;
 
 	var callback = function(err, data){
-		console.log('callbaku');
+		console.log('calubaku');
 	};
 
 	this.async.waterfall(
@@ -92,7 +93,7 @@ var DBObject = function(socket,user,ready,clientCallback){
 				// Prepare id recovery statement
 
 				var getIdQueryStructure = 'SELECT * FROM SiloAdmin.Users WHERE login = ?;';
-				var getIdQueryValues = [user];
+				var getIdQueryValues = [dbObject.user];
 				var getIdQuery = dbObject.mysql.format(getIdQueryStructure,getIdQueryValues);				
 
 				// Recovery user id
@@ -110,14 +111,13 @@ var DBObject = function(socket,user,ready,clientCallback){
 
 					getAllFrom : 'SELECT * FROM `PatternSilo'+dbObject.id+'`.??',
 					getAllFromWhere : 'SELECT * FROM `PatternSilo'+dbObject.id+'`.?? WHERE ?? = ?',
-					insertPattern : 'INSERT INTO `PatternSilo'+dbObject.id+'`.Patterns (type,parent) VALUES (??,??)',
-					insertCharacteristic: 'INSERT INTO `PatternSilo'+dbObject.id+'`.Characteristics (type) VALUE (??)',
-					insertPatternType: 'INSERT INTO `PatternSilo'+dbObject.id+'`.PatternTypes (type) VALUES (??)',
-					insertUnit: 'INSERT INTO `PatternSilo'+dbObject.id+'`.Units (type) VALUES (??)',
-					insertPatternCharacteristic: 'INSERT INTO `PatternSilo'+dbObject.id+'`.PatternsCharacteristics (id,type,value,minValue,maxValue,unit) VALUES (??,??,??,??,??,??)'
+					insertPattern : 'INSERT INTO `PatternSilo'+dbObject.id+'`.`Patterns` (type,parent) VALUES (??,??)',
+					insertCharacteristic: 'INSERT INTO `PatternSilo'+dbObject.id+'`.`Characteristics` (type) VALUE (??)',
+					insertPatternType: 'INSERT INTO `PatternSilo'+dbObject.id+'`.`PatternTypes` (type) VALUES (??)',
+					insertUnit: 'INSERT INTO `PatternSilo'+dbObject.id+'`.`Units` (type) VALUES (??)',
+					insertPatternCharacteristic: 'INSERT INTO `PatternSilo'+dbObject.id+'`.`PatternsCharacteristics` (id,type,value,minValue,maxValue,unit) VALUES (??,??,??,??,??,??)'
 
 				};	
-
 				console.log('Prepare queries : OK'); 
 				dbObject.socket.emit(clientCallback,'hahahaha');
 				ready(true,dbObject);
