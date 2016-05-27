@@ -35,10 +35,6 @@
   	socket.emit('query',data);
   };
 
-  var ping = function(message){
-  	socket.emit('ping',message);
-  };
-
   var createUser = function(user,password){
   	socket.emit('create_user',{user:user,password:password});
   };

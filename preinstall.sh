@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "create your configuration for mysql"
+echo "Create your configuration for mysql"
 
 read -p "Give your root user : " user
 read -p "Give a password for silo user : " silo_password

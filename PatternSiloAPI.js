@@ -258,13 +258,6 @@ io.on('connection', function (socket) {
 		};
 	};	
 
-	socket.on('lol', function(data){
-
-		console.log('ping : ',data);
-		socket.emit('message','pong');
-
-	})
-
 	/* User connection */
 
 	/*	
@@ -272,22 +265,12 @@ io.on('connection', function (socket) {
 	 */
 
 	socket.on('login', function (data) {
-		try {
-			checkLogin(data,socket,dbObjectReady);
-		} catch(ex){
-			console.log(ex);
-			emitMessage('Can not log','err',socket);
-		}
+		checkLogin(data,socket,dbObjectReady);
 	});	
 
 	socket.on('query', function (data) {
 		if (login != null){
 			socket.emit('message','not avaible');
-			//if (data.id) {
-			//	emitMessage('Processing query'+data.id,'message',socket);
-			//} else {
-			//	emitMessage('ID is missing, query will be refused','err',socket);
-			//}
 			//dbObject.run(data,socket);
 		} else {
 			emitMessage("You're not logged","err",socket);

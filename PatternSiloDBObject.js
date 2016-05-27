@@ -34,7 +34,7 @@
  * rps : readPatterns => return a list of object of Pattern modele
  * rp : readPattern => return a list of the asked pattern (by id)
  * rpt : readPatternTypes => return a list of patternTypes object
- * rc : readCharacteristics => return a list of characteristic
+ * rc : readCharacteristics => return a list of characteristics
  * wp : writePattern => take a pattern and push it in database, if a id is given (in the pattern object), write on the existing pattern
  * wps : writePatterns => take patterns and push it in database, if a id is given (in the pattern object), write on the existing pattern
  * wpt : writePatternType => create a new patternType
